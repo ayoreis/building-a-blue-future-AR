@@ -1,108 +1,19 @@
-<!-- microdata and workers -->
-
 <!DOCTYPE html>
+
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Document</title>
+		<title>Building a Blue Future</title>
 
 		<link rel="stylesheet" href="/styles.css" />
 
-		<script
-			type="module"
-			src="https://unpkg.com/es-module-shims@1.6.2/dist/es-module-shims.js?module"></script>
-
-		<script defer src="/matrix-3D.js"></script>
-
 		<script type="module">
-			/////////////////////////////////////////////
-
-			class Rectangle extends DOMRect {
-				static fromDOMRect({ top, right, bottom, left }) {
-					return new Rectangle(top, right, bottm, left)
-				}
-
-				intersection(other) {
-					const top = Math.max(this.top, other.top)
-					const right = Math.min(this.right, other.right)
-					const bottom = Math.min(this.bottom, other.bottom)
-					const left = Math.max(this.left, other.left)
-
-					if (top >= bottom || left >= right) throw TypeError()
-
-					return new Rectangle(top, right, bottom, left)
-				}
-
-				to8() {
-					return [
-						this.top,
-						this.left,
-						this.top,
-						this.right,
-						this.bottom,
-						this.right,
-						this.bottom,
-						this.left,
-					]
-				}
-
-				calculateCut(other) {
-					const thisWidth = this.right - this.left
-					const thisHeight = this.bottom - this.top
-					const otherWidth = other.right - other.left
-					const otherHeight = other.bottom - other.top
-
-					// return (
-					// 	Math.min(thisWidth) *
-					// 		(Math.max(otherHeight) / Math.max(thisWidth)) -
-					// 	Math.min(otherWidth)
-					// )
-
-					const thisAspectRatio = thisWidth / thisHeight
-					const otherAspectRatio = otherWidth / otherHeight
-
-					if (thisAspectRatio > otherAspectRatio) {
-						return (
-							thisWidth * (otherHeight / thisHeight) - otherWidth
-						)
-					} else {
-						return -(
-							thisHeight * (otherWidth / thisWidth) -
-							otherHeight
-						)
-					}
-				}
-			}
-
-			const IS_IOS = 'requestPermission' in DeviceMotionEvent
-
-			const SCREEN_RECTANGLE = new Rectangle(
-				0,
-				innerWidth,
-				innerHeight,
-				0,
-			)
-
-			async function requestIOSPermissions() {
-				await DeviceMotionEvent.requestPermission()
-			}
-
-			async function requestPermissions() {
-				;['granted', 'prompt'].includes(
-					(
-						await navigator.permissions.query({
-							name: 'gyroscope',
-						})
-					).state,
-				)
-			}
-
 			try {
 				// VIDEO
 				const main = document.querySelector('main')
-				const mainContent = main.querySelector('div')
+				const mainContent = main.querySelector('main > div')
 
 				const video = document.createElement('video')
 				const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -116,8 +27,7 @@
 				video.playsInline = true
 				video.srcObject = mediaStream
 
-				// If I change the to `append` it'll zoom the video!?!?
-				document.body.prepend(video)
+				main.prepend(video)
 
 				document.body.classList.add('AR')
 
@@ -125,18 +35,23 @@
 					video.addEventListener('loadeddata', () => resolve())
 				})
 
-				// COME FROM QR CODE
+				// QR CODE
 				const { default: QrScanner } = await import(
 					'https://unpkg.com/qr-scanner@1.4.1/qr-scanner.min.js'
 				)
 
+				const { IS_IOS, requestPermissions, iOSRequestPermissions } =
+					await import('./permissions.js')
+				const { Rectangle } = await import('./rectangle.js')
+				const { transform2D } = await import('./matrix-3D.js')
+
 				const QRScannerScanImageOptions = {
-					// scanRegion: {
-					// 	x: 0,
-					// 	y: 0,
-					// 	height: SCREEN_RECTANGLE.height,
-					// 	width: SCREEN_RECTANGLE.width,
-					// },
+					scanRegion: {
+						x: 0,
+						y: 0,
+						height: innerHeight,
+						width: innerWidth,
+					},
 					qrEngine: QrScanner.createQrEngine(QrScanner.WORKER_PATH),
 					canvas: document.createElement('canvas'),
 				}
@@ -152,200 +67,167 @@
 					note.show()
 				}
 
-				const boundingClientRect = mainContent.getBoundingClientRect()
+				const { cornerPoints } = await new Promise((resolve) => {
+					let currentResult
+					let resolved = false
 
-				async function eventLoop() {
-					try {
-						const { cornerPoints } = await QrScanner.scanImage(
-							video,
-							QRScannerScanImageOptions,
-						)
+					iOSNoteButton.addEventListener('click', async () => {
+						await iOSRequestPermissions()
+						resolve(currentResult)
+						resolved = true
+					})
 
-						const videoRectangle = new Rectangle(
-							0,
-							0,
-							video.videoWidth,
-							video.videoHeight,
-						)
-						const videoContainerRectangle = new Rectangle(
-							0,
-							0,
-							video.clientWidth,
-							video.clientHeight,
-						)
-						const cut = videoRectangle.calculateCut(
-							videoContainerRectangle,
-						)
+					async function eventLoop() {
+						try {
+							currentResult = await QrScanner.scanImage(
+								video,
+								QRScannerScanImageOptions,
+							)
 
-						document.body.style.setProperty(
-							'--translate',
-							`-${boundingClientRect.x + Math.abs(cut)}px -${
-								boundingClientRect.y + Math.abs(cut)
-							}px`,
-						)
+							iOSNoteButton.disabled = false
 
-						let scale
-						let scale2
+							if (!IS_IOS) {
+								note.close()
+								resolve(currentResult)
+							}
+						} catch (error) {
+							// iOSNoteButton.disabled = true
 
-						if (cut < 0) {
-							// height cut
-							scale =
-								videoContainerRectangle.width /
-								videoRectangle.width
-
-							scale2 =
-								videoContainerRectangle.height /
-								videoRectangle.height
-						} else {
-							// width cut
-							scale =
-								videoContainerRectangle.height /
-								videoRectangle.height
-
-							scale2 =
-								videoContainerRectangle.width /
-								videoRectangle.width
+							if (error !== 'No QR code found') throw error
 						}
 
-						let corners = [
-							cornerPoints[0].x,
-							cornerPoints[0].y,
-							cornerPoints[1].x,
-							cornerPoints[1].y,
-							cornerPoints[3].x,
-							cornerPoints[3].y,
-							cornerPoints[2].x,
-							cornerPoints[2].y,
-						]
-
-						corners = corners.map((c) => c * scale)
-
-						if (cut < 0) {
-							corners = corners.map((c, i) =>
-								i % 2 ? c - Math.abs(cut) / 2 : c,
-							)
-						} else {
-							// width cut
-							corners = corners.map((c, i) =>
-								i % 2 ? c : c - Math.abs(cut) / 2,
-							)
-						}
-
-						transform2d(mainContent, ...corners)
-					} catch (error) {
-						if (error !== 'No QR code found') throw error
+						if (!resolved) requestAnimationFrame(eventLoop)
 					}
 
 					requestAnimationFrame(eventLoop)
-				}
-
-				await eventLoop()
-
-				// const { cornerPoints } = await new Promise(async (resolve) => {
-				// 	let currentResult = null
-				// 	let resolved = false
-
-				// 	iOSNoteButton.addEventListener('click', async () => {
-				// 		await requestIOSPermissions()
-				// 		resolve(currentResult)
-				// 		resolved = true
-				// 	})
-
-				// 	async function eventLoop() {
-				// 		try {
-				// 			// TODO(ayoreis) don't create engine and canvas when `BarcodeDetector` is available
-				// 			currentResult = await QrScanner.scanImage(
-				// 				video,
-				// 				QRScannerScanImageOptions,
-				// 			)
-
-				// 			if (IS_IOS) {
-				// 				iOSNoteButton.disabled = false
-				// 				!resolved && requestAnimationFrame(eventLoop)
-				// 			} else {
-				// 				note.close()
-				// 				resolve(currentResult)
-				// 			}
-				// 		} catch (error) {
-				// 			if (error !== 'No QR code found') throw error
-				// 			iOSNoteButton.disabled = true
-				// 			requestAnimationFrame(eventLoop)
-				// 		}
-				// 	}
-
-				// 	await eventLoop()
-				// })
-
-				// const boundingClientRect = mainContent.getBoundingClientRect()
-
-				// document.body.style.setProperty(
-				// 	'--translate',
-				// 	`-${boundingClientRect.x}px -${boundingClientRect.y}px`,
-				// )
-
-				// // document.body.style.setProperty('--transform')
-
-				// const xRatio = video.clientHeight / video.videoHeight
-				// const yRatio = video.clientWidth / video.videoWidth
-
-				// const corners = [
-				// 	cornerPoints[0].x * xRatio,
-				// 	cornerPoints[0].y * yRatio,
-				// 	cornerPoints[1].x * xRatio,
-				// 	cornerPoints[1].y * yRatio,
-				// 	cornerPoints[3].x * xRatio,
-				// 	cornerPoints[3].y * yRatio,
-				// 	cornerPoints[2].x * xRatio,
-				// 	cornerPoints[2].y * yRatio,
-				// ]
-
-				// transform2d(mainContent, ...corners)
-
-				// MOTION
-				const { Gyroscope } = await import(
-					'https://unpkg.com/motion-sensors-polyfill@0.3.7/src/motion-sensors.js'
-				)
-
-				const gyroscope = new Gyroscope({
-					frequency: 10,
-					referenceFrame: 'device',
 				})
 
-				gyroscope.addEventListener(
-					'reading',
-					({ currentTarget: { x, y } }) => {
-						const allClasses = ['top', 'bottom', 'left', 'right']
-						const addedClasses = new Set()
-
-						if (x > 1) {
-							addedClasses.add('top')
-						} else if (x < -1) {
-							addedClasses.add('bottom')
-						}
-
-						if (y > 1) {
-							addedClasses.add('left')
-						} else if (y < -1) {
-							addedClasses.add('right')
-						}
-
-						for (const oneClass of allClasses) {
-							if (addedClasses.has(oneClass)) {
-								document.body.classList.add(oneClass)
-							} else {
-								document.body.classList.remove(oneClass)
-							}
-						}
-					},
+				const videoSourceRectangle = new Rectangle(
+					0,
+					0,
+					video.videoWidth,
+					video.videoHeight,
 				)
+
+				const videoContainerRectangle = new Rectangle(
+					0,
+					0,
+					video.clientWidth,
+					video.clientHeight,
+				)
+
+				const cut = videoSourceRectangle.calculateCut(
+					videoContainerRectangle,
+				)
+
+				let scale
+
+				let corners = [
+					cornerPoints[0].x,
+					cornerPoints[0].y,
+					cornerPoints[1].x,
+					cornerPoints[1].y,
+					cornerPoints[3].x,
+					cornerPoints[3].y,
+					cornerPoints[2].x,
+					cornerPoints[2].y,
+				]
+
+				const isHeightCut = cut < 0
+
+				if (isHeightCut) {
+					scale =
+						videoContainerRectangle.width /
+						videoSourceRectangle.width
+				} else {
+					scale =
+						videoContainerRectangle.height /
+						videoSourceRectangle.height
+				}
+
+				// Scale
+				corners = corners.map((corner) => corner * scale)
+
+				// Transform cut
+				corners = corners.map((corner, index) =>
+					isHeightCut
+						? index % 2
+						: !(index % 2)
+						? corner - Math.abs(cut) / 2
+						: corner,
+				)
+
+				const mainContentBoundingClientRect =
+					mainContent.getBoundingClientRect()
+
+				// Transform element location
+				const heightCut = mainContentBoundingClientRect.y
+				const widthCut = mainContentBoundingClientRect.x
+
+				console.log(widthCut, heightCut)
+
+				corners = corners.map((corner, index) =>
+					index % 2 ? corner - heightCut : corner - widthCut,
+				)
+
+				document.body.style.setProperty(
+					'--matrix3d',
+					transform2D(
+						mainContentBoundingClientRect.height,
+						mainContentBoundingClientRect.width,
+						...corners,
+					),
+				)
+
+				// Wait for styles to apply
+				await new Promise((resolve) => setTimeout(() => resolve()))
+
+				document.body.classList.add('ready')
+
+				// MOTION
+				// const { Gyroscope } = await import(
+				// 	'https://unpkg.com/motion-sensors-polyfill@0.3.7/src/motion-sensors.js'
+				// )
+
+				// const gyroscope = new Gyroscope({
+				// 	frequency: 10,
+				// 	referenceFrame: 'device',
+				// })
+
+				// gyroscope.addEventListener(
+				// 	'reading',
+				// 	({ currentTarget: { x, y } }) => {
+				// 		const allClasses = ['top', 'bottom', 'left', 'right']
+				// 		const addedClasses = new Set()
+
+				// 		if (x > 1) {
+				// 			addedClasses.add('top')
+				// 		} else if (x < -1) {
+				// 			addedClasses.add('bottom')
+				// 		}
+
+				// 		if (y > 1) {
+				// 			addedClasses.add('left')
+				// 		} else if (y < -1) {
+				// 			addedClasses.add('right')
+				// 		}
+
+				// 		for (const oneClass of allClasses) {
+				// 			if (addedClasses.has(oneClass)) {
+				// 				document.body.classList.add(oneClass)
+				// 			} else {
+				// 				document.body.classList.remove(oneClass)
+				// 			}
+				// 		}
+				// 	},
+				// )
 
 				// gyroscope.start()
 			} catch (error) {
 				console.error(error)
 				document.body.classList.remove('AR')
+				document.body.classList.add('ready')
 			}
-
-			document.body.classList.add('ready')
 		</script>
 	</head>
 

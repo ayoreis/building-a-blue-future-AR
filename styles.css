@@ -1,26 +1,22 @@
+@keyframes animation {
+	from {
+		transform: matrix3d(var(--matrix3d));
+	}
+}
+
 * {
 	box-sizing: border-box;
 
 	margin: 0;
 	padding: 0;
-
-	outline: 2px solid black;
-	outline-offset: -2px;
-
-	/* transform-style: flat;
-	-webkit-transform-style: flat; */
 }
 
 body {
 	font-family: monospace;
 	font-size: 18px;
-
-	/* transform-style: flat;
-	-webkit-transform-style: flat; */
 }
 
 video {
-	z-index: -1;
 	position: fixed;
 	inset: 0;
 	object-fit: cover;
@@ -32,73 +28,49 @@ video {
 }
 
 dialog {
+	--margin: 4rem;
+
+	inset: auto 0 0 0;
+
+	margin: var(--margin);
 	padding: 2rem;
-	--spacing: 2rem;
-	width: calc(100% - 2 * var(--spacing));
-	position: fixed;
-	inset: auto var(--spacing) var(--spacing) var(--spacing);
-	border: none;
+	width: calc(100% - 2 * --margin);
 }
 
 button {
 	font: inherit;
 }
 
-body > main > div {
-	position: absolute;
-	inset: 0;
-	display: grid;
-	gap: 1rem;
-	transform-origin: top left 0;
-
-	transform: var(--matrix3d);
-	/* translate: var(--translate); */
-}
-
 /* STATE */
 
 body.AR > main {
-	/* padding: 3rem; */
+	padding: 3rem;
 }
 
 body:not(.ready) > main > div {
-	visibility: hidden !important;
-	height: 0 !important;
-	width: 0 !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	border: none !important;
-}
-
-body.ready > main > div {
-	transition: transform 1s;
-	transition: translate 1s;
-	transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-
-	/* translate: 0 0; */
-}
-
-body.AR > main > div {
-	padding: 1rem;
+	visibility: hidden;
 }
 
 body:not(.AR) > main > div {
 	padding: 2rem;
 }
 
+body.AR > main > div {
+	padding: 1rem;
+	background-color: rgb(255 255 255 / 0.1);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+body.ready > main > div {
+	transform-origin: top left 0;
+	animation-name: animation;
+	animation-duration: 1s;
+	animation-fill-mode: forwards;
+}
+
 /* ROTATIONS */
-
-/* body > main > div {
-	transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
-	-webkit-transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
-	-ms-transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
-
-	/* z-index: 100; */
-/* -webkit-backface-visibility: hidden;
-	backface-visibility: hidden; 
-} */
-/* 
-body.top > main > div {
+/* body.top > main > div {
 	background-color: red;
 }
 
