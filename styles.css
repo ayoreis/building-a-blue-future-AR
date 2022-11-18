@@ -1,0 +1,115 @@
+* {
+	box-sizing: border-box;
+
+	margin: 0;
+	padding: 0;
+
+	outline: 2px solid black;
+	outline-offset: -2px;
+
+	/* transform-style: flat;
+	-webkit-transform-style: flat; */
+}
+
+body {
+	font-family: monospace;
+	font-size: 18px;
+
+	/* transform-style: flat;
+	-webkit-transform-style: flat; */
+}
+
+video {
+	z-index: -1;
+	position: fixed;
+	inset: 0;
+	object-fit: cover;
+	object-position: center;
+	height: 100vh;
+	width: 100vw;
+	height: 100lvh;
+	width: 100lvw;
+}
+
+dialog {
+	padding: 2rem;
+	--spacing: 2rem;
+	width: calc(100% - 2 * var(--spacing));
+	position: fixed;
+	inset: auto var(--spacing) var(--spacing) var(--spacing);
+	border: none;
+}
+
+button {
+	font: inherit;
+}
+
+body > main > div {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	gap: 1rem;
+	transform-origin: top left 0;
+
+	transform: var(--matrix3d);
+	/* translate: var(--translate); */
+}
+
+/* STATE */
+
+body.AR > main {
+	/* padding: 3rem; */
+}
+
+body:not(.ready) > main > div {
+	visibility: hidden !important;
+	height: 0 !important;
+	width: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: none !important;
+}
+
+body.ready > main > div {
+	transition: transform 1s;
+	transition: translate 1s;
+	transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
+	/* translate: 0 0; */
+}
+
+body.AR > main > div {
+	padding: 1rem;
+}
+
+body:not(.AR) > main > div {
+	padding: 2rem;
+}
+
+/* ROTATIONS */
+
+/* body > main > div {
+	transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
+	-webkit-transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
+	-ms-transform: rotateX(-40deg) rotateY(20deg) rotateZ(0deg);
+
+	/* z-index: 100; */
+/* -webkit-backface-visibility: hidden;
+	backface-visibility: hidden; 
+} */
+/* 
+body.top > main > div {
+	background-color: red;
+}
+
+body.bottom > main > div {
+	background-color: yellow;
+}
+
+body.left > main > div {
+	background-color: blue;
+}
+
+body.right > main > div {
+	background-color: green;
+} */
