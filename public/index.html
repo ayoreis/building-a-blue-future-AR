@@ -6,22 +6,17 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Building a Blue Future</title>
-
 		<link rel="stylesheet" href="/styles.css" />
 
 		<script type="module">
 			try {
-				// VIDEO
+				// Video
 				const main = document.querySelector('main')
-				const mainContent = main.querySelector('main > div')
-
 				const video = document.createElement('video')
 				const mediaStream = await navigator.mediaDevices.getUserMedia({
-					video: {
-						// facingMode: { exact: 'environment' },
-						facingMode: 'environment',
-					},
+					video: { facingMode: { exact: 'environment' } },
 				})
+				const mainContent = main.querySelector('main > div')
 
 				video.autoplay = true
 				video.playsInline = true
@@ -31,11 +26,12 @@
 
 				document.body.classList.add('AR')
 
+				// Wait for first video frame
 				await new Promise((resolve) => {
 					video.addEventListener('loadeddata', () => resolve())
 				})
 
-				// QR CODE
+				// QR code
 				const { default: QrScanner } = await import(
 					'https://unpkg.com/qr-scanner@1.4.1/qr-scanner.min.js'
 				)
@@ -52,6 +48,7 @@
 						height: innerHeight,
 						width: innerWidth,
 					},
+
 					qrEngine: QrScanner.createQrEngine(QrScanner.WORKER_PATH),
 					canvas: document.createElement('canvas'),
 				}
@@ -91,8 +88,6 @@
 								resolve(currentResult)
 							}
 						} catch (error) {
-							// iOSNoteButton.disabled = true
-
 							if (error !== 'No QR code found') throw error
 						}
 
@@ -164,14 +159,13 @@
 				const heightCut = mainContentBoundingClientRect.y
 				const widthCut = mainContentBoundingClientRect.x
 
-				console.log(widthCut, heightCut)
-
 				corners = corners.map((corner, index) =>
 					index % 2 ? corner - heightCut : corner - widthCut,
 				)
 
 				document.body.style.setProperty(
 					'--matrix3d',
+
 					transform2D(
 						mainContentBoundingClientRect.height,
 						mainContentBoundingClientRect.width,
@@ -184,47 +178,50 @@
 
 				document.body.classList.add('ready')
 
-				// MOTION
-				// const { Gyroscope } = await import(
-				// 	'https://unpkg.com/motion-sensors-polyfill@0.3.7/src/motion-sensors.js'
-				// )
+				// Motion
+				const { Gyroscope } = await import(
+					'https://unpkg.com/motion-sensors-polyfill@0.3.7/src/motion-sensors.js'
+				)
 
-				// const gyroscope = new Gyroscope({
-				// 	frequency: 10,
-				// 	referenceFrame: 'device',
-				// })
+				const gyroscope = new Gyroscope({
+					frequency: 10,
+					referenceFrame: 'device',
+				})
 
-				// gyroscope.addEventListener(
-				// 	'reading',
-				// 	({ currentTarget: { x, y } }) => {
-				// 		const allClasses = ['top', 'bottom', 'left', 'right']
-				// 		const addedClasses = new Set()
+				const sensitivity = 1
+				const allClasses = ['top', 'bottom', 'left', 'right']
 
-				// 		if (x > 1) {
-				// 			addedClasses.add('top')
-				// 		} else if (x < -1) {
-				// 			addedClasses.add('bottom')
-				// 		}
+				gyroscope.addEventListener(
+					'reading',
+					({ currentTarget: { x, y } }) => {
+						const addedClasses = new Set()
 
-				// 		if (y > 1) {
-				// 			addedClasses.add('left')
-				// 		} else if (y < -1) {
-				// 			addedClasses.add('right')
-				// 		}
+						if (x > sensitivity) {
+							addedClasses.add('top')
+						} else if (x < -sensitivity) {
+							addedClasses.add('bottom')
+						}
 
-				// 		for (const oneClass of allClasses) {
-				// 			if (addedClasses.has(oneClass)) {
-				// 				document.body.classList.add(oneClass)
-				// 			} else {
-				// 				document.body.classList.remove(oneClass)
-				// 			}
-				// 		}
-				// 	},
-				// )
+						if (y > sensitivity) {
+							addedClasses.add('left')
+						} else if (y < -sensitivity) {
+							addedClasses.add('right')
+						}
 
-				// gyroscope.start()
+						for (const oneClass of allClasses) {
+							if (addedClasses.has(oneClass)) {
+								document.body.classList.add(oneClass)
+							} else {
+								document.body.classList.remove(oneClass)
+							}
+						}
+					},
+				)
+
+				gyroscope.start()
 			} catch (error) {
 				console.error(error)
+
 				document.body.classList.remove('AR')
 				document.body.classList.add('ready')
 			}

@@ -6,7 +6,7 @@ const STATIC_FILES = [
 	'matrix-3D.js',
 	'rectangle.js',
 	'permissions.js',
-]
+] // as const
 
 serveTls(
 	(request) => {
@@ -15,10 +15,11 @@ serveTls(
 		console.log(pathname)
 
 		if (STATIC_FILES.includes(pathname)) {
-			return serveFile(request, pathname)
+			return serveFile(request, `public/${pathname}`)
 		}
 
-		return serveFile(request, 'index.html')
+		return serveFile(request, 'public/index.html')
 	},
+
 	{ certFile: 'certificate.pem', keyFile: 'key.pem' },
 )

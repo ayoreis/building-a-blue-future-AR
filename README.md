@@ -6,6 +6,7 @@ This project uses [Deno](//deno.land) to create a [Secure context](//developer.m
 
 It needs a [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) certificate and key with the names `cerificate.pem` and `key.pem`, you can create them using [mkcert](//github.com/FiloSottile/mkcert).
 
-## Features
+## To do
 
-...
+-   [ ] Resize scan region to screen
+-   [ ] Make content not scroll before animation end (`position: fixed`?)
